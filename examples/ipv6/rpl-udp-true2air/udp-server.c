@@ -41,6 +41,7 @@
 #include <ctype.h>
 
 #include "true2air_prot.h"
+#include "dev/leds.h"
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
@@ -127,7 +128,7 @@ static int uart_rx_callback(unsigned char c) {
 		}
 	}
 	else {// I receiving a packet
-		if (rx_buf_curr_char == 28+16){
+		if (rx_buf_curr_char == 30+16){
 			//printf("name:%s\n",((rfnode_pkt*)rx_buf)->name);
 			//PRINT6ADDR();
 			send_rfnode_pkt((rfnode_pkt*)rx_buf,&rx_buf[sizeof(rfnode_pkt)]);

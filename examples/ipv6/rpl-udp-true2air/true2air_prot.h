@@ -44,13 +44,13 @@ typedef struct {
 	uint8_t cnt;       /**< Count: for ex count of devs / number of current dev */
 	char name[20];
 	uint8_t new_device; /**< New sensor on the node side if true, request of a GET_SENSACT_LIST */
+	uint16_t pkt_cnt;
 } rfnode_pkt; //TODO: Proper alignment
 
-void root_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out);
-void node_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out);
+int node_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out);
 int node_is_initialized();
 void node_init_pkt(rfnode_pkt* pkt_out);
 void print_pkt(rfnode_pkt* pkt,uip_ip6addr_t* addr);
 void print_pkt_bin(rfnode_pkt* pkt,uip_ip6addr_t* addr);
-
+void print_pkt_without_addr(rfnode_pkt* pkt);
 #endif /* EXAMPLES_IPV6_RPL_UDP_TRUE2AIR_TRUE2AIR_PROT_H_ */

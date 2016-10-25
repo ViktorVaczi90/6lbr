@@ -7,66 +7,89 @@
 #include "true2air_prot.h"
 #include <stdio.h>
 #include <stdint.h>
-#include <stdint.h>
 #include "net/ip/uip.h"
 
 #define DEBUG DEBUG_PRINT
 #include "net/ip/uip-debug.h"
+#include "dev/leds.h"
 uint8_t node_initialized = 0;
-void root_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out)
+int node_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out)
 {
-	{
-		switch(pkt_in->msg){
+	leds_on(LEDS_BLUE);
+	node_initialized = 1;
+	print_pkt_without_addr(pkt_in);
+	pkt_out->pkt_cnt = pkt_in->pkt_cnt;
+	switch(pkt_in->msg){
 		case SET_IPADDR:
-			pkt_out->msg = SET_IPADDR;
-			printf("Received SET_IPADDR!\n");
-			break;
-		default:
-			pkt_out->msg = ERROR_PKT_MSG;
-			break;
-		}
-	}
-}
-void node_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out)
-{
-	if(node_initialized){
-		switch(pkt_in->msg){
-		case ERROR_PKT_MSG:
-			pkt_out->msg = ERROR_PKT_MSG;
-			break;
-		case SET_IPADDR:
-			printf("Node already  initialized!\n");
-			pkt_out->msg = ERROR_PKT_MSG;
-			break;
+			printf("SET IPADDR, init:%d\n",node_initialized);
+			pkt_out->msg = SET_IPADDR;// Don't answer
+			pkt_out->data = 0;
+			pkt_out->new_device = node_initialized;
+			sprintf(pkt_out->name,"REPLY SET_IPADDR!");
+			pkt_out->cnt = 2;
+			return 1;
 		case GET_SENSACT_LIST:
-			break;
-		case SENSACT_LIST_ACK:
-			break;
+			pkt_out->msg = SENSACT_LIST_ACK;
+			pkt_out->data = 0;
+			pkt_out->new_device = 0;
+			sprintf(pkt_out->name,"REPLY FROM NODE!");
+			pkt_out->cnt = 2;
+			return 1;
 		case SENSACT_LIST_ITEM:
+			pkt_out->msg = SENSACT_LIST_ITEM;
+			pkt_out->data = 0;
+			pkt_out->new_device = 0;
+			pkt_out->cnt = pkt_in->cnt;
+			switch(pkt_in->cnt){
+				case 0:
+					sprintf(pkt_out->name,"LED(RED)");
+					return 1;
+				case 1:
+					sprintf(pkt_out->name,"LED(GREEN)");
+					return 1;
+				default:
+					pkt_out->msg = ERROR_PKT_MSG;
+			}
+			return 1;
+		case GET_SENSACT: // Dummy sensor handler
+			pkt_out->msg = SENSACT_ACK;
+			pkt_out->new_device = 0;
+			pkt_out->cnt = pkt_in->cnt;
+			if(pkt_in->cnt == 0 && !strcmp(pkt_in->name,"LED(RED)")){
+				sprintf(pkt_out->name,"LED(RED)");
+				pkt_out->data = leds_get() &LEDS_RED == 1;
+			}
+			else if(pkt_in->cnt == 1 && !strcmp(pkt_in->name,"LED(GREEN)")){
+				sprintf(pkt_out->name,"LED(GREEN)");
+				pkt_out->data = leds_get() &LEDS_GREEN == 1;
+			}
+			else sprintf(pkt_out->name,"WRONG NUMBER/NAME!");
+			return 1;
+
 			break;
-		case GET_SENSACT:
-			break;
-		case SET_SENSACT:
-			break;
+		case SET_SENSACT: // Dummy sensor handler
+			pkt_out->msg = SENSACT_ACK;
+			pkt_out->data = pkt_in->data;
+			pkt_out->new_device = 0;
+			pkt_out->cnt = pkt_in->cnt;
+			if(pkt_in->cnt == 0 && !strcmp(pkt_in->name,"LED(RED)")){
+				sprintf(pkt_out->name,"LED(RED)");
+				pkt_in->data?leds_on(LEDS_RED):leds_off(LEDS_RED);
+			}
+			else if(pkt_in->cnt == 1 && !strcmp(pkt_in->name,"LED(GREEN)")){
+				sprintf(pkt_out->name,"LED(GREEN)");
+				pkt_in->data?leds_on(LEDS_GREEN):leds_off(LEDS_GREEN);
+			}
+			else sprintf(pkt_out->name,"WRONG NUMBER/NAME!");
+			return 1;
 		case SENSACT_ACK:
-			break;
+		case SENSACT_LIST_ACK:
+		case ERROR_PKT_MSG:
 		default:
 			pkt_out->msg = ERROR_PKT_MSG;
 			break;
 		}
-	}
-	else{ //Node uninitialized
-		switch(pkt_in->msg){
-		case SET_IPADDR:
-			pkt_out->msg = ERROR_PKT_MSG;// Don't answer
-			printf("Node initialized!\n");
-			node_initialized = 1;
-			break;
-		default:
-			pkt_out->msg = ERROR_PKT_MSG;
-			break;
-		}
-	}
+	return 0;
 }
 int node_is_initialized(){
 	return node_initialized;
@@ -77,19 +100,19 @@ void node_init_pkt(rfnode_pkt* pkt_out){
 void print_pkt_bin(rfnode_pkt* pkt,uip_ip6addr_t* addr){
 	int i = 0;
 	printf("NEW PACKET!:\n");
-	/*for(i = 0; i < sizeof(pkt_msg);i++)	putchar(((char*)&pkt->msg)[i]);
-	for(i = 0; i < sizeof(uint8_t);i++)	putchar(((char*)&pkt->cnt)[i]);
-	for(i = 0; i < sizeof(uint32_t);i++)putchar(((char*)&pkt->data)[i]);
-	for(i = 0; i < 20;i++)				putchar(((char*)pkt->name)[i]);
-	for(i = 0; i < sizeof(uint8_t);i++)	putchar(((char*)&pkt->new_device)[i]);*/
 	for(i = 0; i<sizeof(rfnode_pkt);i++) putchar(((char*)pkt)[i]);
 	for(i = 0; i < sizeof(uip_ip6addr_t);i++) putchar((char*)addr->u8[i]);
 	printf("\nEND OF PACKET!\n");
 }
 void print_pkt(rfnode_pkt* pkt,uip_ip6addr_t* addr){
-	printf("NEW PKT!:\npkt->msg:%d\npkt->cnt:%d\n(int)pkt->data:%d\npkt->name:%s\npkt->new_device:%d\n"
-			,pkt->msg,pkt->cnt,(int)pkt->data,pkt->name,pkt->new_device);
+	printf("NEW PKT!:\npkt->msg:%d\npkt->cnt:%d\n(int)pkt->data:%d\npkt->name:%s\npkt->new_device:%d\npkt->pkt_cnt:%d\n"
+			,pkt->msg,pkt->cnt,(int)pkt->data,pkt->name,pkt->new_device,pkt->pkt_cnt);
 	PRINT6ADDR(addr);
+	printf("\n");
+}
+void print_pkt_without_addr(rfnode_pkt* pkt){
+	printf("NEW PKT!:\npkt->msg:%d\npkt->cnt:%d\n(int)pkt->data:%d\npkt->name:%s\npkt->new_device:%d\npkt->pkt_cnt:%d\n"
+			,pkt->msg,pkt->cnt,(int)pkt->data,pkt->name,pkt->new_device,pkt->pkt_cnt);
 	printf("\n");
 }
 

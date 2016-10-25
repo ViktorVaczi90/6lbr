@@ -43,7 +43,7 @@
 #include "dev/serial-line.h"
 #include "dev/uart1.h"
 #include "net/ipv6/uip-ds6-route.h"
-
+#include "dev/leds.h"
 #define UDP_CLIENT_PORT 8765
 #define UDP_SERVER_PORT 5678
 
@@ -78,10 +78,12 @@ tcpip_handler(void)
 {
   rfnode_pkt pkt_out;
   rfnode_pkt *pkt_in;
+  memset(&pkt_out,0,sizeof(rfnode_pkt));
   if(uip_newdata()) {
 	pkt_in = (rfnode_pkt*)uip_appdata;
-	node_pkt_reply(pkt_in,&pkt_out);
-	//print_pkt(pkt_in,&UIP_IP_BUF->srcipaddr);
+	if(node_pkt_reply(pkt_in,&pkt_out))
+	  uip_udp_packet_sendto(client_conn, (void*)&pkt_out, sizeof(rfnode_pkt),
+	                        &server_ipaddr, UIP_HTONS(UDP_SERVER_PORT));
   }
 }
 /*---------------------------------------------------------------------------*/
@@ -120,8 +122,9 @@ send_init_packet(void *ptr)
   PRINTF("Send SET_IPADDR to the server\n");
   pkt.cnt=1;
   pkt.data=2;
-  pkt.new_device = 3;
+  pkt.new_device = 0;
   pkt.msg = SET_IPADDR;
+  pkt.pkt_cnt = 0;
   for ( i = 0; i < 20 ; i++) pkt.name[i] = 0;
   sprintf(pkt.name, "SETIPADDRMSG");
   uip_udp_packet_sendto(client_conn, (void*)&pkt, sizeof(rfnode_pkt),
@@ -215,7 +218,8 @@ PROCESS_THREAD(udp_client_process, ev, data)
   serial_line_init();
 
   etimer_set(&periodic, SEND_INTERVAL);
-  PRINTF("FASZ\n");
+  printf("sizeof(rfnode_pkt:%d",sizeof(rfnode_pkt));
+  leds_arch_init();
   while(1) {
     PROCESS_YIELD();
     if(ev == tcpip_event) {
