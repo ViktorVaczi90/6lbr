@@ -35,7 +35,9 @@ typedef enum {
 	SENSACT_LIST_ITEM,	/**< Item from the sensor list, with number in cnt						(node	)	*/
 	GET_SENSACT,      	/**< Get value and properties of sensor, number in cnt					(server	)	*/
 	SET_SENSACT,      	/**< Set value of sensor, number in cnt									(server	)	*/
-	SENSACT_ACK		  	/**< Return the value of sensor for set/get, number in cnt				(node	)	*/
+	SENSACT_ACK,	  	/**< Return the value of sensor for set/get, number in cnt				(node	)	*/
+	GET_SENSACT_ACK,	/**< Reply to GET_SENSACT from node										(node	)	*/
+	SET_SENSACT_ACK		/**< Reply to SET_SENSACT from node										(node	)	*/
 } pkt_msg;
 
 typedef struct {

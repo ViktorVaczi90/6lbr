@@ -52,23 +52,23 @@ int node_pkt_reply(rfnode_pkt* pkt_in, rfnode_pkt* pkt_out)
 			}
 			return 1;
 		case GET_SENSACT: // Dummy sensor handler
-			pkt_out->msg = SENSACT_ACK;
+			pkt_out->msg = GET_SENSACT_ACK;
 			pkt_out->new_device = 0;
 			pkt_out->cnt = pkt_in->cnt;
 			if(pkt_in->cnt == 0 && !strcmp(pkt_in->name,"LED(RED)")){
 				sprintf(pkt_out->name,"LED(RED)");
-				pkt_out->data = leds_get() &LEDS_RED == 1;
+				pkt_out->data = leds_get() &LEDS_RED == 1; //WROOOOONG!!!!
 			}
 			else if(pkt_in->cnt == 1 && !strcmp(pkt_in->name,"LED(GREEN)")){
 				sprintf(pkt_out->name,"LED(GREEN)");
-				pkt_out->data = leds_get() &LEDS_GREEN == 1;
+				pkt_out->data = leds_get() &LEDS_GREEN == 1;// WROOONG
 			}
 			else sprintf(pkt_out->name,"WRONG NUMBER/NAME!");
 			return 1;
 
 			break;
 		case SET_SENSACT: // Dummy sensor handler
-			pkt_out->msg = SENSACT_ACK;
+			pkt_out->msg = SET_SENSACT_ACK;
 			pkt_out->data = pkt_in->data;
 			pkt_out->new_device = 0;
 			pkt_out->cnt = pkt_in->cnt;
